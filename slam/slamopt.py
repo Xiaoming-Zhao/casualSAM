@@ -153,7 +153,7 @@ class DepthVideoOptimization():
         logging.info(
             f'scale at frame 0: {self.depth_video.scale_and_shift(frame_list[0])[0].mean().item()}')
         logging.info('first pair initialized')
-        for x in range(2, len(frame_list)):
+        for x in tqdm(range(2, len(frame_list))):
             logging.info(f'---------adding frame {x}-------')
             logging.info(f'adding frame {frame_list[x]}')
             self.keyframe_buffer.add_keyframe(frame_list[x])
@@ -306,7 +306,7 @@ class DepthVideoOptimization():
         all_pairs = []
         logging.info('calculating flows')
         with Timer('flow pair generation: '):
-            for p in all_pairs_candidate:
+            for p in tqdm(all_pairs_candidate):
                 # use cvd style sampling
                 gap = abs(p[0]-p[1])
                 if max_range is not None:
@@ -341,7 +341,7 @@ class DepthVideoOptimization():
         all_pairs = []
         logging.info('calculating flows')
         with Timer('flow pair generation: '):
-            for p in all_pairs_candidate:
+            for p in tqdm(all_pairs_candidate):
                 # use cvd style sampling
                 gap = abs(p[0]-p[1])
                 if max_range is not None:
@@ -368,7 +368,7 @@ class DepthVideoOptimization():
         self.depth_video.flow_cache.empty_cache()
         logging.info('calculating flows')
         with Timer('flow pair generation: '):
-            for p in all_pairs_candidate:
+            for p in tqdm(all_pairs_candidate):
                 # use cvd style sampling
                 gap = abs(p[0]-p[1])
                 if max_range is not None:
@@ -464,7 +464,7 @@ class DepthVideoOptimization():
         logging.info('calculating flows')
         all_pairs = []
         with Timer('flow pair generation: '):
-            for p in all_pairs_candidate:
+            for p in tqdm(all_pairs_candidate):
                 # use cvd style sampling
                 gap = abs(p[0]-p[1])
                 if max_range is not None:
@@ -482,7 +482,7 @@ class DepthVideoOptimization():
         self.working_flow_cache.prebatch_by_list_of_pairs(chunks)
         i_print = self.opt.i_print_full_BA
         with Timer('full BA'):
-            for iter in range(iteration):
+            for iter in tqdm(range(iteration)):
                 for o in self.all_optimizers:
                     o.zero_grad()
                 total_loss = 0
@@ -537,7 +537,7 @@ class DepthVideoOptimization():
         # self.depth_video.freeze_frame(frame_list[1])
         logging.info('calculating flows')
         with Timer('flow pair generation: '):
-            for p in all_pairs_candidate:
+            for p in tqdm(all_pairs_candidate):
                 # use cvd style sampling
                 gap = abs(p[0]-p[1])
                 if max_range is not None:
@@ -669,7 +669,7 @@ class DepthVideoOptimization():
         with torch.no_grad():
             scale_tensor = self.get_scale_tensor(frame_list)
             init_depth_tensor = self.get_init_depth_tensor(frame_list)
-        for iter in range(iteration):
+        for iter in tqdm(range(iteration)):
             raw_depth_tensor, uncertrainty_tensor = self.get_raw_depth_tensor_with_uncertainty(
                 frame_list)
             depth_tensor = raw_depth_tensor*scale_tensor
@@ -707,7 +707,7 @@ class DepthVideoOptimization():
             raw_depth_tensor = self.get_raw_depth_tensor(frame_list)
             raw_init_depth_tensor = self.depth_video.initial_depth[frame_list, ...]
 
-        for iter in range(iteration):
+        for iter in tqdm(range(iteration)):
 
             for o in self.all_optimizers:
                 o.zero_grad()
@@ -1182,7 +1182,7 @@ class DepthVideoOptimization():
         torch.save(self.depth_video.uncertainty_net.state_dict(),
                    join(output_path, 'uncertainty_net.pth'))
 
-    def save_results(self, output_path, frame_list=None, with_uncertainty=False):
+    def save_results(self, output_path, frame_list=None, with_uncertainty=False, save_disk=False):
         logging.info('saving results.')
         with Timer('save results in'):
             num_frames = self.depth_video.number_of_frames
@@ -1229,16 +1229,18 @@ class DepthVideoOptimization():
                     output_dict = {'disp': disp_pred*scale,
                                    'R': R, 't': t, 'K': K, 'img': img, 'mask_motion': mask_motion, 'uncertainty_pred': uncertainty_pred, 'gt_K': gt_K}
                     np.savez(join(output_path, f'{n:04d}.npz'), **output_dict)
-            torch.save(self.depth_video.depth_net.state_dict(),
-                       join(output_path, 'depth_net.pth'))
-            torch.save(self.depth_video.poses.state_dict(),
-                       join(output_path, 'poses.pth'))
-            torch.save(self.depth_video.scale_and_shift.state_dict(),
-                       join(output_path, 'scale_and_shift.pth'))
-            torch.save(self.depth_video.camera_intrinsics.state_dict(),
-                       join(output_path, 'camera_intrinsics.pth'))
-            torch.save(self.depth_video.uncertainty_net.state_dict(),
-                       join(output_path, 'uncertainty_net.pth'))
+            
+            if not save_disk:
+                torch.save(self.depth_video.depth_net.state_dict(),
+                        join(output_path, 'depth_net.pth'))
+                torch.save(self.depth_video.poses.state_dict(),
+                        join(output_path, 'poses.pth'))
+                torch.save(self.depth_video.scale_and_shift.state_dict(),
+                        join(output_path, 'scale_and_shift.pth'))
+                torch.save(self.depth_video.camera_intrinsics.state_dict(),
+                        join(output_path, 'camera_intrinsics.pth'))
+                torch.save(self.depth_video.uncertainty_net.state_dict(),
+                        join(output_path, 'uncertainty_net.pth'))
             # all_npzs = sorted(glob(join(output_path, '*.npz')))
 
             rot_mat = np.asarray([[-1, 0, 0], [0, 0, -1], [0, -1, 0]])
@@ -1270,7 +1272,8 @@ class DepthVideoOptimization():
                 w.add_pointcloud(pts, rgb, mask)
                 disp_map.append(disp)
                 uncertainty_map.append(uncertainty_pred)
-            w.save(join(output_path, f'pointcloud_video.html'))
+            if not save_disk:
+                w.save(join(output_path, f'pointcloud_video.html'))
             list_of_array_to_gif(disp_map, join(output_path, 'disp.gif'))
             if len(uncertainty_map[0].shape) > 2:
                 C = uncertainty_map[0].shape[0]

@@ -142,6 +142,11 @@ def parse_args(input_string=None):
                         default=None, help='checkpoint path')
     parser.add_argument('--uncertainty_only_iter', type=int,
                         default=101, help='iteration for uncertainty only BA')
+    # customized
+    parser.add_argument('--mono_data_root', type=str, default=None,
+                        help='directory that contains images for monocular video')
+    parser.add_argument('--save_disk', action='store_true',
+                        help='if True, we do not save network weights')
     if input_string is not None:
         opt = parser.parse_args(input_string)
     else:
@@ -220,7 +225,7 @@ def train_fn_from_opt(opt):
         K = dataset.camera_intrinsics.get_K_and_inv()[0].detach().cpu().numpy()
         logging.info(K)
         depth_opt.save_results(os.path.join(
-            opt.output_path, 'depth_only_refine'), frame_list=frame_list, with_uncertainty=True)
+            opt.output_path, 'depth_only_refine'), frame_list=frame_list, with_uncertainty=True, save_disk=opt.save_disk)
         return
 
     if opt.use_uncertainty:
@@ -234,7 +239,7 @@ def train_fn_from_opt(opt):
             logging.info('running init')
             depth_opt.local_BA_init_uncertainty(frame_list, scale_only=True)
             depth_opt.save_results(os.path.join(
-                opt.output_path, 'init_window_BA'), frame_list=frame_list, with_uncertainty=True)
+                opt.output_path, 'init_window_BA'), frame_list=frame_list, with_uncertainty=True, save_disk=opt.save_disk)
         if opt.init_only:
             return
         K = dataset.camera_intrinsics.get_K_and_inv()[0].detach().cpu().numpy()
@@ -250,7 +255,7 @@ def train_fn_from_opt(opt):
                 0].detach().cpu().numpy()
             logging.info(K)
             depth_opt.save_results(os.path.join(
-                opt.output_path, 'uc_only_BA_init'), frame_list=frame_list, with_uncertainty=True)
+                opt.output_path, 'uc_only_BA_init'), frame_list=frame_list, with_uncertainty=True, save_disk=opt.save_disk)
         if opt.add_scale_only_BA:
             logging.info('performing scale only BA')
             depth_opt.BA_over_all_frames_low_mem(
@@ -259,20 +264,20 @@ def train_fn_from_opt(opt):
                 0].detach().cpu().numpy()
             logging.info(K)
             depth_opt.save_results(os.path.join(
-                opt.output_path, 'scale_only_BA_init'), frame_list=frame_list, with_uncertainty=True)
+                opt.output_path, 'scale_only_BA_init'), frame_list=frame_list, with_uncertainty=True, save_disk=opt.save_disk)
 
         depth_opt.BA_over_all_frames_low_mem(
             frame_list, iteration=opt.full_BA_iter//3, batch_size=opt.batch_size, max_range=16, use_pose_init_reg=opt.use_pose_init_reg)
         K = dataset.camera_intrinsics.get_K_and_inv()[0].detach().cpu().numpy()
         logging.info(K)
         depth_opt.save_results(os.path.join(
-            opt.output_path, 'BA_4'), frame_list=frame_list, with_uncertainty=True)
+            opt.output_path, 'BA_4'), frame_list=frame_list, with_uncertainty=True, save_disk=opt.save_disk)
         depth_opt.BA_over_all_frames_low_mem(
             frame_list, iteration=opt.full_BA_iter//3, batch_size=opt.batch_size, max_range=64, use_pose_init_reg=opt.use_pose_init_reg)
         K = dataset.camera_intrinsics.get_K_and_inv()[0].detach().cpu().numpy()
         logging.info(K)
         depth_opt.save_results(os.path.join(
-            opt.output_path, 'BA_16'), frame_list=frame_list, with_uncertainty=True)
+            opt.output_path, 'BA_16'), frame_list=frame_list, with_uncertainty=True, save_disk=opt.save_disk)
         depth_opt.BA_over_all_frames_low_mem(
             frame_list, iteration=opt.full_BA_iter//3, batch_size=opt.batch_size, use_pose_init_reg=opt.use_pose_init_reg)
         K = dataset.camera_intrinsics.get_K_and_inv()[0].detach().cpu().numpy()
@@ -287,7 +292,7 @@ def train_fn_from_opt(opt):
     else:
         depth_opt.local_BA_init_full(frame_list, paired=True)
         depth_opt.save_results(os.path.join(
-            opt.output_path, 'init_window_BA'), frame_list=frame_list)
+            opt.output_path, 'init_window_BA'), frame_list=frame_list, save_disk=opt.save_disk)
         depth_opt.BA_over_all_frames_low_mem(
             frame_list, iteration=opt.full_BA_iter, batch_size=opt.batch_size)
         depth_opt.save_results(opt.output_path, frame_list=frame_list)
@@ -296,7 +301,7 @@ def train_fn_from_opt(opt):
 
 def main():
     opt = parse_args()
-    os.environ['CUDA_VISIBLE_DEVICES'] = opt.gpu
+    # os.environ['CUDA_VISIBLE_DEVICES'] = opt.gpu
     train_fn_from_opt(opt)
 
 

@@ -61,7 +61,8 @@ def list_of_array_to_gif(list_of_array, output_path, fps=10):
         return norm_arr
     image_list = [(heatmap_to_pseudo_color(normalize(x))*255).astype(np.uint8)
                   for x in list_of_array]
-    mimwrite(output_path, image_list, fps=fps)
+    # mimwrite(output_path, image_list, fps=fps)
+    mimwrite(output_path, image_list, duration=1000 / fps)
 
 
 def photo_metric_loss(img_warped, img_gt, occ_mask):

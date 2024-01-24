@@ -1,6 +1,6 @@
 dataset_name: 'davis'
 log_dir: './experiment_logs'
-track_name : 'rollerblade'
+track_name : 'train'
 buffer_size : 5
 cache_length: 1000
 optimization_layers: [refinenet1, refinenet2, refinenet3, refinenet4]
@@ -23,7 +23,6 @@ use_inverse_scale: True
 opt_intrinsics: True
 max_width_opt: 400
 max_width: 1024
-has_gt: False
 not_load_mask: True
 depth_regularizer: 'si_weighted'
 depth_reg_weight: 1

@@ -5,7 +5,9 @@ import torch
 from os.path import dirname, join
 RAFT_PATH_ROOT = join(dirname(__file__), 'RAFT')
 RAFT_PATH_CORE = join(RAFT_PATH_ROOT, 'core')
-sys.path.append(RAFT_PATH_CORE)
+# sys.path.append(RAFT_PATH_CORE)
+sys.path.insert(0, RAFT_PATH_CORE)
+
 from raft import RAFT  # nopep8
 from utils.utils import InputPadder  # nopep8
 
